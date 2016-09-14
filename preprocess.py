@@ -9,6 +9,8 @@ import codecs
 import numpy as np
 import xml.dom.minidom
 
+import jieba
+
 error_dict = {
     'R': 1,
     'M': 2,
@@ -71,7 +73,68 @@ def serialize(file_name):
 
     return ret_id, ret_text, ret_label
 
+def detect_serialize(file_name):
+    logging.info('Loading data from %s' % (file_name))
+
+    with codecs.open(file_name, 'r') as my_file:
+        DOMTree = xml.dom.minidom.parse(my_file)
+
+    docs = DOMTree.documentElement.getElementsByTagName('DOC')
+
+    ret_id, ret_text, ret_label = [], [], []
+    for doc in docs:
+        text = doc.getElementsByTagName('TEXT')[0].childNodes[0].nodeValue.replace('\n', '')
+        text = list(jieba.cut(text, cut_all=False))
+        ret_text.append(text)
+        ret_label.append(0)
+
+        text_id = doc.getElementsByTagName('TEXT')[0].getAttribute('id')
+
+        correction = doc.getElementsByTagName('CORRECTION')[0].childNodes[0].nodeValue.replace('\n', '')
+        correction = list(jieba.cut(correction, cut_all=False))
+        ret_text.append(correction)
+        ret_label.append(1)
+
+        errs = doc.getElementsByTagName('ERROR')
+
+    return ret_id, ret_text, ret_label
+
+def detect_single_serialize(file_name):
+    logging.info('Loading data from %s' % (file_name))
+
+    with codecs.open(file_name, 'r') as my_file:
+        DOMTree = xml.dom.minidom.parse(my_file)
+
+    docs = DOMTree.documentElement.getElementsByTagName('DOC')
+
+    ret_id, ret_text, ret_label = [], [], []
+    for doc in docs:
+        text = doc.getElementsByTagName('TEXT')[0].childNodes[0].nodeValue.replace('\n', '')
+        # text = list(jieba.cut(text, cut_all=False))
+        curline = []
+        for i in range(len(text)):
+            curline.append(text[i])
+        curline = ' '.join(curline)
+
+        ret_text.append(curline)
+        ret_label.append(0)
+
+        text_id = doc.getElementsByTagName('TEXT')[0].getAttribute('id')
+
+        correction = doc.getElementsByTagName('CORRECTION')[0].childNodes[0].nodeValue.replace('\n', '')
+        # correction = list(jieba.cut(correction, cut_all=False))
+        newcorr = []
+        for i in range(len(correction)):
+            newcorr.append(correction[i])
+        newcorr = ' '.join(newcorr)
+
+        ret_text.append(newcorr)
+        ret_label.append(1)
+
+        errs = doc.getElementsByTagName('ERROR')
+
+    return ret_id, ret_text, ret_label
 
 if __name__ == '__main__':
     data = os.path.join('data', 'CGED16_HSK_Train_All.txt')
-    ret_id, ret_text, ret_label = serialize(data)
+    ret_id, ret_text, ret_label = detect_single_serialize(data)

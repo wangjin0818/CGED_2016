@@ -22,12 +22,14 @@ from keras.layers.core import Dropout
 # from keras.layers.wrappers import TimeDistributed
 # from keras.models import Model
 
+from sklearn.metrics import precision_score, recall_score, accuracy_score, f1_score
+
 bucket_size = 10
 random_state = 0
 embedding_dim = 200
 
-batch_size = 16
-nb_epoch = 10
+batch_size = 20
+nb_epoch = 3
 hidden_dim = 100
 
 def encode(ret_text, ret_label):
@@ -36,6 +38,10 @@ def encode(ret_text, ret_label):
     for i in range(len(ret_text)):
         for j in range(len(ret_text[i])):
             vocab[ret_text[i][j]] = vocab[ret_text[i][j]] + 1
+
+    # for debug
+    # ret_text = ret_text[:200]
+    # ret_label = ret_label[:200]
 
     # train, test split
     train_text, test_text, train_label, test_label = train_test_split(ret_text, ret_label, 
@@ -83,10 +89,9 @@ def encode(ret_text, ret_label):
     for i in range(len(y_train)):
         for j in range(len(y_train[i])):
             new_y_train[i, j, y_train[i][j]] = 1
+            # print(new_y_train[i][j])
 
     X_train = np.array(X_train)
-    y_train = np.array(new_y_train)
-
 
     for i in range(len(test_text)):
         cur_line = []
@@ -117,7 +122,29 @@ def encode(ret_text, ret_label):
     X_test = np.array(X_test)
     y_test = np.array(y_test)
 
-    return X_train, y_train, X_test, y_test, vocab
+    return X_train, new_y_train, X_test, y_test, vocab
+
+def decode(X_test, y_test, predict_array):
+    y_pred = []
+    y_true = []
+    for i in range(len(X_test)):
+        for j in range(len(X_test[i])):
+
+            if X_test[i][j] != 0:
+                y_true.append(y_test[i][j])
+
+                print(predict_array[i][j], np.argmax(predict_array[i][j]))
+                cur_pred = np.argmax(predict_array[i][j])
+                y_pred.append(cur_pred)
+
+    print(y_true, y_pred)
+    # print(len(y_true), len(y_pred))
+
+    precision = precision_score(y_true, y_pred, average='micro')
+    recall = recall_score(y_true, y_pred, average='micro')
+    accuracy = accuracy_score(y_true, y_pred)
+
+    print(precision, recall, accuracy)
 
 
 if __name__ == '__main__':
@@ -145,7 +172,7 @@ if __name__ == '__main__':
         hidden_dim=100, 
         output_dim=len(error_dict.keys()) + 1,
         output_length=bucket_size,
-        depth=1
+        depth=3
     )
     model.add(seq2seq)
 
@@ -164,8 +191,10 @@ if __name__ == '__main__':
     # output = TimeDistributed(Dense(1)) (decoder)
     # model = Model(input=sequence, output=output)
 
-    model.compile(loss='categorical_crossentropy', optimizer='sgd')
+    model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
     model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=nb_epoch)
     predict_array = model.predict(X_test, batch_size=batch_size)
 
     print(predict_array.shape)
+
+    decode(X_test, y_test, predict_array)
