@@ -17,6 +17,10 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# Word2vec files
+*.pickle
+*.vector
+
 # =========================
 # Operating System Files
 # =========================
@@ -46,6 +50,4 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
-# Word2vec files
-.pickle
-.vector
+

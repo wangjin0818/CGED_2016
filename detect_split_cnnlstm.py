@@ -26,6 +26,7 @@ from sklearn.metrics import f1_score
 
 pickle_file = os.path.join('pickle', 'detect_HSK_split.pickle')
 
+
 batch_size = 10
 maxlen = 100
 
@@ -126,8 +127,10 @@ if __name__ == '__main__':
 
     precision = precision_score(y_test, y_pred, average='binary')
     recall = recall_score(y_test, y_pred, average='binary')
+    f1 = f1_score(y_test, y_pred, average='binary')
     accuracy = accuracy_score(y_test, y_pred)
 
     logging.info('precision score: %.3f' % (precision))
     logging.info('recal score: %.3f' % (recall))
+    logging.info('f1 score: %.3f' % (f1))
     logging.info('accuracy score: %.3f' % (accuracy))

@@ -10,6 +10,7 @@ import numpy as np
 import xml.dom.minidom
 
 import jieba
+jieba.set_dictionary(os.path.join('dict', 'dict.txt.big'))
 
 from collections import defaultdict
 
@@ -148,10 +149,13 @@ def identification_serialize(file_name):
     ret_id, ret_text = [], []
     R_label, M_label, S_label, W_label = [], [], [], []
     for doc in docs:
-        text = doc.getElementsByTagName('TEXT')[0].childNodes[0].nodeValue.replace('\n', '')
-        text = list(jieba.cut(text, cut_all=False))
-        ret_text.append(text)
-        # ret_label.append(0)
+        # text = doc.getElementsByTagName('TEXT')[0].childNodes[0].nodeValue.replace('\n', '')
+        # text = list(jieba.cut(text, cut_all=False))
+        # ret_text.append(text)
+        # R_label.append(0)
+        # M_label.append(0)
+        # S_label.append(0)
+        # W_label.append(0)
 
         text_id = doc.getElementsByTagName('TEXT')[0].getAttribute('id')
 
@@ -186,9 +190,15 @@ def identification_serialize(file_name):
         else:
             W_label.append(0)
 
-    return ret_id, ret_text, (R_label, M_label, S_label, W_label)
+    # print(len(ret_text))
+    # print(len(R_label))
+    # print(len(M_label))
+    # print(len(S_label))
+    # print(len(W_label))
+
+    return ret_id, ret_text, R_label, M_label, S_label, W_label
 
 if __name__ == '__main__':
     data = os.path.join('data', 'CGED16_HSK_Train_All.txt')
     # ret_id, ret_text, ret_label = detect_single_serialize(data)
-    ret_id, ret_text, label_list = identification_serialize(data)
+    ret_id, ret_text, R_label, M_label, S_label, W_label = identification_serialize(data)
