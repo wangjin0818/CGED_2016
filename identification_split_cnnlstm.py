@@ -26,10 +26,10 @@ from sklearn.metrics import accuracy_score
 from sklearn.metrics import f1_score
 
 # pickle_file = os.path.join('pickle', 'detect_HSK_split.pickle')
-pickle_file = os.path.join('pickle', 'identification_TOCFL_split.pickle')
+pickle_file = os.path.join('pickle', 'identification_HSK_split.pickle')
 
-batch_size = 10
-maxlen = 77
+batch_size = 50
+maxlen = 60
 
 hidden_dim = 120
 
@@ -37,7 +37,7 @@ kernel_size = 3
 nb_filter = 120
 nb_epoch = 10
 
-option = 'S_label'
+option = 'M_label'
 
 def get_idx_from_sent(sent, word_idx_map):
     """
@@ -56,25 +56,31 @@ def make_idx_data(revs, word_idx_map):
     Transforms sentences into a 2-d matrix.
     """
     X_train, X_test, y_train, y_test = [], [], [], []
-    i = 0
+    i = 0; j =0
     for rev in revs:
         sent = get_idx_from_sent(rev['text'], word_idx_map)
         y = rev[option]
-        if option == 'R_label':
-            if not y == 1:
-                rand = random.uniform(0, 1)
-                if rand <= 0.5:
-                    continue
-                i = i + 1
-
-        if option == 'W_label':
-            if not y == 1:
-                rand = random.uniform(0, 1)
-                if rand >= 0.12:
-                    continue
-                i = i + 1
 
         if rev['split'] == 1:
+            if option == 'R_label':
+                if not y == 1:
+                    rand = random.uniform(0, 1)
+                    if rand <= 0.5:
+                        continue
+                else:
+                    i = i + 1
+
+            if option == 'W_label':
+                if not y == 1:
+                    rand = random.uniform(0, 1)
+                    if rand >= 0.12:
+                        continue
+                else:
+                    i = i + 1
+
+            if (option == 'S_label' or option == 'M_label') and y == 1:
+                i = i + 1
+
             X_train.append(sent)
             y_train.append(y)
 
@@ -84,7 +90,8 @@ def make_idx_data(revs, word_idx_map):
 
     X_train = sequence.pad_sequences(np.array(X_train), maxlen=maxlen)
     X_test = sequence.pad_sequences(np.array(X_test), maxlen=maxlen)
-    print(i)
+
+    logging.info('target class number: %d' % (i))
 
     return [X_train, X_test, y_train, y_test]
 
@@ -144,7 +151,7 @@ if __name__ == '__main__':
         else:
             y_pred[i] = 0
 
-    print(y_pred)
+    # print(y_pred)
 
     precision = precision_score(y_test, y_pred, average='binary')
     recall = recall_score(y_test, y_pred, average='binary')

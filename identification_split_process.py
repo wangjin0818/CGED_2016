@@ -13,7 +13,7 @@ import pandas as pd
 from sklearn.cross_validation import train_test_split
 from collections import defaultdict
 
-from preprocess import detect_serialize
+# from preprocess import detect_serialize
 from preprocess import identification_serialize
 
 # configuration
@@ -42,6 +42,9 @@ def build_data_train_test(text, R_label, M_label, S_label, W_label):
     for i in xrange(len(X_train)):
         line = X_train[i]
 
+        if len(line) > 60:
+            continue
+
         rev = []
         orig_rev = ' '.join(line)
         words = set(orig_rev.split())
@@ -60,6 +63,9 @@ def build_data_train_test(text, R_label, M_label, S_label, W_label):
 
     for i in xrange(len(X_test)):
         line = X_test[i]
+
+        if len(line) > 60:
+            continue
 
         rev = []
         orig_rev = ' '.join(line)
@@ -122,7 +128,7 @@ if __name__ == '__main__':
     logger.info(r"running %s" % ''.join(sys.argv))
 
     # load competition file
-    input_file = os.path.join('data', 'CGED16_TOCFL_Train_All.txt')
+    input_file = os.path.join('data', 'CGED16_HSK_Train_All.txt')
     # ret_id, ret_text, ret_label = detect_serialize(input_file)
     ret_id, ret_text, R_label, M_label, S_label, W_label = identification_serialize(input_file)
 
@@ -138,7 +144,7 @@ if __name__ == '__main__':
     logging.info('std sentence length: ' + str(std_l))
 
     logging.info('loading word2vec...')
-    embedding_file = os.path.join('embedding', 'wiki.zh_TW.vector')
+    embedding_file = os.path.join('embedding', 'wiki.zh_CN.vector')
     emvedding = gensim.models.Word2Vec.load_word2vec_format(embedding_file, binary=False)
     w2v = load_bin_vec(emvedding, vocab)
     logging.info('word2vec loaded!')
@@ -147,7 +153,7 @@ if __name__ == '__main__':
     W, word_idx_map = get_W(w2v)
     logging.info('extracted index from word2vec! ')
 
-    pickle_file = os.path.join('pickle', 'identification_TOCFL_split.pickle')
+    pickle_file = os.path.join('pickle', 'identification_HSK_split.pickle')
     cPickle.dump([revs, W, word_idx_map, vocab], open(pickle_file, 'wb'))
     logging.info('dataset created!')
 

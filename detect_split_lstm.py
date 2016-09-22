@@ -26,8 +26,8 @@ from sklearn.metrics import f1_score
 # pickle_file = os.path.join('pickle', 'detect_HSK_single.pickle')
 pickle_file = os.path.join('pickle', 'detect_HSK_split.pickle')
 
-batch_size = 10
-maxlen = 100
+batch_size = 50
+maxlen = 60
 
 hidden_dim = 120
 nb_epoch = 10

@@ -17,9 +17,13 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# Python Compile
+*.pyc
+
 # Word2vec files
 *.pickle
 *.vector
+/pickle/
 
 # =========================
 # Operating System Files

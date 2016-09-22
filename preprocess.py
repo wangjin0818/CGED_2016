@@ -102,41 +102,6 @@ def detect_serialize(file_name):
 
     return ret_id, ret_text, ret_label
 
-def detect_single_serialize(file_name):
-    logging.info('Loading data from %s' % (file_name))
-
-    with codecs.open(file_name, 'r') as my_file:
-        DOMTree = xml.dom.minidom.parse(my_file)
-
-    docs = DOMTree.documentElement.getElementsByTagName('DOC')
-
-    ret_id, ret_text, ret_label = [], [], []
-    for doc in docs:
-        text = doc.getElementsByTagName('TEXT')[0].childNodes[0].nodeValue.replace('\n', '')
-        # text = list(jieba.cut(text, cut_all=False))
-        curline = []
-        for i in range(len(text)):
-            curline.append(text[i])
-        curline = ' '.join(curline)
-
-        ret_text.append(curline)
-        ret_label.append(0)
-
-        text_id = doc.getElementsByTagName('TEXT')[0].getAttribute('id')
-
-        correction = doc.getElementsByTagName('CORRECTION')[0].childNodes[0].nodeValue.replace('\n', '')
-        # correction = list(jieba.cut(correction, cut_all=False))
-        newcorr = []
-        for i in range(len(correction)):
-            newcorr.append(correction[i])
-        newcorr = ' '.join(newcorr)
-
-        ret_text.append(newcorr)
-        ret_label.append(1)
-
-        errs = doc.getElementsByTagName('ERROR')
-
-    return ret_id, ret_text, ret_label
 
 def identification_serialize(file_name): 
     logging.info('Loading data from %s' % (file_name))
@@ -149,20 +114,12 @@ def identification_serialize(file_name):
     ret_id, ret_text = [], []
     R_label, M_label, S_label, W_label = [], [], [], []
     for doc in docs:
-        # text = doc.getElementsByTagName('TEXT')[0].childNodes[0].nodeValue.replace('\n', '')
-        # text = list(jieba.cut(text, cut_all=False))
-        # ret_text.append(text)
-        # R_label.append(0)
-        # M_label.append(0)
-        # S_label.append(0)
-        # W_label.append(0)
-
+        text = doc.getElementsByTagName('TEXT')[0].childNodes[0].nodeValue.replace('\n', '')
+        text = list(jieba.cut(text, cut_all=False))
+        ret_text.append(text)
+        
         text_id = doc.getElementsByTagName('TEXT')[0].getAttribute('id')
 
-        correction = doc.getElementsByTagName('CORRECTION')[0].childNodes[0].nodeValue.replace('\n', '')
-        correction = list(jieba.cut(correction, cut_all=False))
-        ret_text.append(correction)
-        # ret_label.append(1)
 
         errs = doc.getElementsByTagName('ERROR')
         cur_err_dict = defaultdict(int)
@@ -189,12 +146,6 @@ def identification_serialize(file_name):
             W_label.append(1)
         else:
             W_label.append(0)
-
-    # print(len(ret_text))
-    # print(len(R_label))
-    # print(len(M_label))
-    # print(len(S_label))
-    # print(len(W_label))
 
     return ret_id, ret_text, R_label, M_label, S_label, W_label
 

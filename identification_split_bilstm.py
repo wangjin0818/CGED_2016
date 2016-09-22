@@ -9,22 +9,22 @@ import math
 import cPickle
 import numpy as np
 
-from keras.models import Sequential
+from keras.models import Model
 from keras.layers.core import Dense, Dropout, Activation, Flatten, Merge
 from keras.layers.embeddings import Embedding
-from keras.layers.convolutional import Convolution1D, MaxPooling1D
 from keras.layers.recurrent import LSTM, GRU
 from keras.optimizers import SGD, Adadelta
 from keras.regularizers import l2
 from keras.layers.advanced_activations import PReLU
 from keras.preprocessing import sequence
+from keras.layers import Input, merge
 
 from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import f1_score
 
-pickle_file = os.path.join('pickle', 'detect_HSK_split.pickle')
+pickle_file = os.path.join('pickle', 'identification_HSK_split.pickle')
 
 batch_size = 50
 maxlen = 60
@@ -34,6 +34,8 @@ hidden_dim = 120
 kernel_size = 3
 nb_filter = 120
 nb_epoch = 10
+
+option = 'S_label'
 
 def get_idx_from_sent(sent, word_idx_map):
     """
@@ -52,19 +54,42 @@ def make_idx_data(revs, word_idx_map):
     Transforms sentences into a 2-d matrix.
     """
     X_train, X_test, y_train, y_test = [], [], [], []
+    i = 0; j =0
     for rev in revs:
         sent = get_idx_from_sent(rev['text'], word_idx_map)
-        y = rev['label']
+        y = rev[option]
 
         if rev['split'] == 1:
+            if option == 'R_label':
+                if not y == 1:
+                    rand = random.uniform(0, 1)
+                    if rand <= 0.5:
+                        continue
+                else:
+                    i = i + 1
+
+            if option == 'W_label':
+                if not y == 1:
+                    rand = random.uniform(0, 1)
+                    if rand >= 0.12:
+                        continue
+                else:
+                    i = i + 1
+
+            if (option == 'S_label' or option == 'M_label') and y == 1:
+                i = i + 1
+
             X_train.append(sent)
             y_train.append(y)
+
         elif rev['split'] == 0:
             X_test.append(sent)
             y_test.append(y)
 
     X_train = sequence.pad_sequences(np.array(X_train), maxlen=maxlen)
     X_test = sequence.pad_sequences(np.array(X_test), maxlen=maxlen)
+
+    logging.info('target class number: %d' % (i))
 
     return [X_train, X_test, y_train, y_test]
 
@@ -94,25 +119,23 @@ if __name__ == '__main__':
     num_features = W.shape[1]               # 400
     logging.info("dimension num of word vector [num_features]: %d" % num_features)
 
-    # Keras Model
-    model = Sequential()
-    # Embedding layer (lookup table of trainable word vectors)
-    model.add(Embedding(input_dim=max_features, output_dim=num_features, input_length=maxlen, weights=[W], trainable=False))
-    model.add(Dropout(0.25))
-    model.add(Convolution1D(nb_filter=nb_filter,
-                            filter_length=kernel_size,
-                            border_mode='valid',
-                            activation='relu',
-                            subsample_length=1
-                            ))
-    model.add(MaxPooling1D(pool_length=2))
+    # this is the placeholder tensor for the input sequence
+    sequence = Input(shape=(maxlen, ), dtype='int32')
 
-    # lstm layer:
-    model.add(LSTM(hidden_dim))
+    embedded = Embedding(input_dim=max_features, output_dim=num_features, input_length=maxlen, weights=[W], trainable=False) (sequence)
+    embedded = Dropout(0.25) (embedded)
 
-    # We project onto a single unit output layer, and squash it with a sigmoid:
-    model.add(Dense(1))
-    model.add(Activation('sigmoid'))
+    # apply forward LSTM
+    forwards = LSTM(hidden_dim) (embedded)
+
+    # apply backwards LSTM
+    backwards = LSTM(hidden_dim, go_backwards=True) (embedded)
+
+    merged = merge([forwards, backwards], mode='concat', concat_axis=-1)
+    lstm = Dropout(0.5) (merged)
+
+    output = Dense(1, activation='sigmoid') (lstm)
+    model = Model(input=sequence, output=output)
 
     model.compile(loss='binary_crossentropy', optimizer='sgd')
     model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=nb_epoch)
