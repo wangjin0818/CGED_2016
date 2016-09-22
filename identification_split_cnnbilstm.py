@@ -5,18 +5,21 @@ import os
 import sys
 import logging
 import math
+import random
 
 import cPickle
 import numpy as np
 
-from keras.models import Sequential
+from keras.models import Model
 from keras.layers.core import Dense, Dropout, Activation, Flatten, Merge
 from keras.layers.embeddings import Embedding
 from keras.layers.convolutional import Convolution1D, MaxPooling1D
+from keras.layers.recurrent import LSTM, GRU
 from keras.optimizers import SGD, Adadelta
 from keras.regularizers import l2
 from keras.layers.advanced_activations import PReLU
 from keras.preprocessing import sequence
+from keras.layers import Input, merge
 
 from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
@@ -25,14 +28,16 @@ from sklearn.metrics import f1_score
 
 pickle_file = os.path.join('pickle', 'identification_HSK_split.pickle')
 
-batch_size = 10
-maxlen = 77
+batch_size = 50
+maxlen = 60
+
+hidden_dim = 120
 
 kernel_size = 3
 nb_filter = 120
 nb_epoch = 10
 
-option = 'R_label'
+option='R_label'
 
 def get_idx_from_sent(sent, word_idx_map):
     """
@@ -117,42 +122,43 @@ if __name__ == '__main__':
     num_features = W.shape[1]               # 400
     logging.info("dimension num of word vector [num_features]: %d" % num_features)
 
-    # Keras Model
-    model = Sequential()
-    # Embedding layer (lookup table of trainable word vectors)
-    model.add(Embedding(input_dim=max_features, output_dim=num_features, input_length=maxlen, weights=[W], trainable=False))
-    model.add(Dropout(0.25))
-    model.add(Convolution1D(nb_filter=nb_filter,
+    # this is the placeholder tensor for the input sequence
+    sequence = Input(shape=(maxlen, ), dtype='int32')
+
+    embedded = Embedding(input_dim=max_features, output_dim=num_features, input_length=maxlen, weights=[W], trainable=False) (sequence)
+    embedded = Dropout(0.25) (embedded)
+
+    # convolutional layer
+    convolution = Convolution1D(nb_filter=nb_filter,
                             filter_length=kernel_size,
                             border_mode='valid',
                             activation='relu',
                             subsample_length=1
-                            ))
-    model.add(MaxPooling1D(pool_length=2))
-    model.add(Flatten())
+                            ) (embedded)
 
-    # We add a vanilla hidden layer:
-    model.add(Dense(70))    # best: 120
-    model.add(Dropout(0.25))    # best: 0.25
-    model.add(Activation('relu'))
-    # We project onto a single unit output layer, and squash it with a sigmoid:
-    model.add(Dense(1))
-    model.add(Activation('sigmoid'))
+    maxpooling = MaxPooling1D(pool_length=2) (convolution)
+
+    # apply forward LSTM
+    forwards = LSTM(hidden_dim) (maxpooling)
+
+    # apply backwards LSTM
+    backwards = LSTM(hidden_dim, go_backwards=True) (maxpooling)
+
+    merged = merge([forwards, backwards], mode='concat', concat_axis=-1)
+    lstm = Dropout(0.5) (merged)
+
+    output = Dense(1, activation='sigmoid') (lstm)
+    model = Model(input=sequence, output=output)
 
     model.compile(loss='binary_crossentropy', optimizer='sgd')
     model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=nb_epoch)
 
     y_pred = model.predict(X_test, batch_size=batch_size).flatten()
-
-    print(y_pred)
     for i in range(len(y_pred)):
         if y_pred[i] >= 0.5:
             y_pred[i] = 1
-            # print('1111')
         else:
             y_pred[i] = 0
-
-    print(y_pred)
 
     precision = precision_score(y_test, y_pred, average='binary')
     recall = recall_score(y_test, y_pred, average='binary')

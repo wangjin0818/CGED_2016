@@ -5,6 +5,7 @@ import os
 import sys
 import logging
 import math
+import random
 
 import cPickle
 import numpy as np
@@ -13,6 +14,7 @@ from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation, Flatten, Merge
 from keras.layers.embeddings import Embedding
 from keras.layers.convolutional import Convolution1D, MaxPooling1D
+from keras.layers.recurrent import LSTM, GRU
 from keras.optimizers import SGD, Adadelta
 from keras.regularizers import l2
 from keras.layers.advanced_activations import PReLU
@@ -25,8 +27,10 @@ from sklearn.metrics import f1_score
 
 pickle_file = os.path.join('pickle', 'identification_HSK_split.pickle')
 
-batch_size = 10
-maxlen = 77
+batch_size = 50
+maxlen = 60
+
+hidden_dim = 120
 
 kernel_size = 3
 nb_filter = 120
@@ -91,7 +95,6 @@ def make_idx_data(revs, word_idx_map):
     return [X_train, X_test, y_train, y_test]
 
 
-
 if __name__ == '__main__':
     program = os.path.basename(sys.argv[0])
     logger = logging.getLogger(program)
@@ -122,6 +125,8 @@ if __name__ == '__main__':
     # Embedding layer (lookup table of trainable word vectors)
     model.add(Embedding(input_dim=max_features, output_dim=num_features, input_length=maxlen, weights=[W], trainable=False))
     model.add(Dropout(0.25))
+    model.add(LSTM(hidden_dim, return_sequences=True))
+
     model.add(Convolution1D(nb_filter=nb_filter,
                             filter_length=kernel_size,
                             border_mode='valid',
@@ -135,6 +140,7 @@ if __name__ == '__main__':
     model.add(Dense(70))    # best: 120
     model.add(Dropout(0.25))    # best: 0.25
     model.add(Activation('relu'))
+
     # We project onto a single unit output layer, and squash it with a sigmoid:
     model.add(Dense(1))
     model.add(Activation('sigmoid'))
@@ -143,16 +149,11 @@ if __name__ == '__main__':
     model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=nb_epoch)
 
     y_pred = model.predict(X_test, batch_size=batch_size).flatten()
-
-    print(y_pred)
     for i in range(len(y_pred)):
         if y_pred[i] >= 0.5:
             y_pred[i] = 1
-            # print('1111')
         else:
             y_pred[i] = 0
-
-    print(y_pred)
 
     precision = precision_score(y_test, y_pred, average='binary')
     recall = recall_score(y_test, y_pred, average='binary')
