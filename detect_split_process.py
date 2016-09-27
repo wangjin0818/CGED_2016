@@ -118,7 +118,8 @@ if __name__ == '__main__':
     logger.info(r"running %s" % ''.join(sys.argv))
 
     # load competition file
-    input_file = os.path.join('data', 'CGED16_HSK_Train_All.txt')
+    input_file = os.path.join('data', 'CGED16_HSK_Train_All_Revised.txt')
+    # input_file = os.path.join('data', 'CGED16_HSK_Train_All.txt')
     # ret_id, ret_text, ret_label = detect_serialize(input_file)
     ret_id, ret_text, ret_label = detect_serialize(input_file)
 

@@ -10,7 +10,7 @@ import numpy as np
 import xml.dom.minidom
 
 import jieba
-jieba.set_dictionary(os.path.join('dict', 'dict.txt.big'))
+# jieba.set_dictionary(os.path.join('dict', 'dict.txt.big'))
 
 from collections import defaultdict
 
@@ -150,6 +150,8 @@ def identification_serialize(file_name):
     return ret_id, ret_text, R_label, M_label, S_label, W_label
 
 if __name__ == '__main__':
-    data = os.path.join('data', 'CGED16_HSK_Train_All.txt')
-    # ret_id, ret_text, ret_label = detect_single_serialize(data)
-    ret_id, ret_text, R_label, M_label, S_label, W_label = identification_serialize(data)
+    data = os.path.join('data', 'CGED16_TOCFL_Train_All.txt.bak')
+    ret_id, ret_text, ret_label = detect_serialize(data)
+    print(len(ret_text))
+
+    # ret_id, ret_text, R_label, M_label, S_label, W_label = identification_serialize(data)
